@@ -525,6 +525,10 @@ export default {
     }
 
     // 5. Fallback: serve static assets & React SPA routes from Cloudflare Pages
-    return env.ASSETS.fetch(request);
+    const res = await env.ASSETS.fetch(request);
+    if (res.status === 404 && !path.startsWith('/api/') && !path.includes('.')) {
+      return env.ASSETS.fetch(new Request(new URL('/index.html', request.url), request));
+    }
+    return res;
   }
 };
