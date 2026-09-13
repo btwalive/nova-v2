@@ -494,6 +494,95 @@ async function handleComments(request) {
   });
 }
 
+async function handleGetCandidates(request, ctx) {
+  // Check Cloudflare Edge Cache first
+  let cache = null;
+  let cacheKey = null;
+  try {
+    if (typeof caches !== 'undefined' && caches.default) {
+      cache = caches.default;
+      cacheKey = new Request(request.url, request);
+      const cachedResponse = await cache.match(cacheKey);
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+    }
+  } catch (e) {}
+
+  try {
+    const res = await fetch('https://nova-4daf4-default-rtdb.firebaseio.com/submissions.json?orderBy=%22%24key%22&limitToLast=100', {
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!res.ok) {
+      throw new Error(`Firebase returned status ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (!data) {
+      return new Response(JSON.stringify({ submissions: [] }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Sanitize and strip heavy data URLs / unneeded payloads
+    const list = Object.values(data)
+      .filter(Boolean)
+      .map(sub => {
+        const c = sub.candidate || {};
+        const ev = sub.evaluation || {};
+        const rawClips = (sub.rawResponses || []).map((r, i) => ({
+          questionId: r.questionId || `q${i + 1}`,
+          questionTitle: r.questionTitle || `Question ${i + 1}`,
+          audioUrl: r.audioUrl && !String(r.audioUrl).startsWith('data:') ? r.audioUrl : null,
+          durationSeconds: r.durationSeconds || 0,
+          expectedText: r.expectedText || r.promptText || '',
+          transcript: r.transcript || ''
+        }));
+
+        return {
+          id: sub.id,
+          _dbId: sub.id,
+          candidate: {
+            fullName: c.fullName || c.name || '',
+            email: c.email || '',
+            phone: c.phone || '',
+            currentLocation: c.currentLocation || c.location || '',
+            experienceLevel: c.experienceLevel || ''
+          },
+          evaluation: {
+            overallScore: ev.overallScore || 0,
+            cefrLevel: ev.cefrLevel || ''
+          },
+          rawResponses: rawClips,
+          recruiterFeedback: sub.recruiterFeedback || {},
+          submittedAt: sub.submittedAt || sub._createdAt || ''
+        };
+      })
+      .sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+
+    const response = new Response(JSON.stringify({ submissions: list }), {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=30, stale-while-revalidate=120'
+      }
+    });
+
+    if (cache && cacheKey && ctx && typeof ctx.waitUntil === 'function') {
+      ctx.waitUntil(cache.put(cacheKey, response.clone()));
+    }
+    return response;
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message, submissions: [] }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -524,11 +613,20 @@ export default {
       return handleComments(request);
     }
 
-    // 5. Fallback: serve static assets & React SPA routes from Cloudflare Pages
-    const res = await env.ASSETS.fetch(request);
-    if (res.status === 404 && !path.startsWith('/api/') && !path.includes('.')) {
-      return env.ASSETS.fetch(new Request(new URL('/index.html', request.url), request));
+    // 5. Fast Cloudflare Edge Candidates API (Sub-50ms cache)
+    if (path === '/api/candidates') {
+      return handleGetCandidates(request, ctx);
     }
-    return res;
+
+    // 6. Fallback: serve static assets & React SPA routes from Cloudflare Pages
+    try {
+      const res = await env.ASSETS.fetch(request);
+      if (res.status === 404 && !path.startsWith('/api/') && !path.includes('.')) {
+        return await env.ASSETS.fetch(new Request(new URL('/index.html', request.url), request));
+      }
+      return res;
+    } catch (err) {
+      return new Response('Not found', { status: 404 });
+    }
   }
 };

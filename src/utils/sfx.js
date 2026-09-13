@@ -167,6 +167,5 @@ export const playInstantClickSfx = () => {
 
 // Auto-trigger preloads on module import
 if (typeof window !== 'undefined') {
-  preloadSfx();
-  preloadAllPromptAudio();
+  // Preload click SFX lazily without blocking startup
 }

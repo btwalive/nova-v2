@@ -13,10 +13,6 @@ import TermsPrivacyModal from './TermsPrivacyModal';
 const REG_STEPS = ['name', 'email', 'phone', 'location', 'resume'];
 
 export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKeys = {}, onAuthenticate }) {
-  useEffect(() => {
-    preloadAllPromptAudio();
-  }, []);
-
   const [authKey, setAuthKey] = useState(initialKey);
   const [showRegistrationForm, setShowRegistrationForm] = useState(false);
   const [regStep, setRegStep] = useState('name'); // 'name' | 'email' | 'phone' | 'location' | 'resume'

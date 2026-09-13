@@ -473,7 +473,21 @@ export async function fetchSubmissionsFromCloud({ forceRefresh = false, deltaOnl
     _storageOrigin: s._storageOrigin || 'Firebase Cloud',
   }));
 
-  // 1. PRIMARY: Fetch from Firebase Realtime Database (where all 707+ candidate records live)
+  // 1. FASTEST: Cloudflare Edge-Cached API (Sub-50ms response)
+  try {
+    const edgeRes = await fetch('/api/candidates');
+    if (edgeRes.ok) {
+      const json = await edgeRes.json();
+      if (Array.isArray(json.submissions) && json.submissions.length > 0) {
+        cacheLocally(json.submissions);
+        return json.submissions;
+      }
+    }
+  } catch (e) {
+    console.warn('Edge candidates API fallback:', e);
+  }
+
+  // 2. PRIMARY FALLBACK: Fetch from Firebase Realtime Database
   try {
     const firebaseSubmissions = await fetchSubmissionsFromFirebase({
       forceFull: forceRefresh,
