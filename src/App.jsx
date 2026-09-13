@@ -4,6 +4,7 @@ import SystemCheck from './components/SystemCheck';
 import VoiceTestEngine from './components/VoiceTestEngine';
 import TestSubmitted from './components/TestSubmitted';
 import RecruiterDashboard from './components/RecruiterDashboard';
+import VoiceAuditionsStudio from './components/VoiceAuditionsStudio';
 import AdminLoginModal from './components/AdminLoginModal';
 import PrivacyNoticePage from './components/PrivacyNoticePage';
 import TermsOfServicePage from './components/TermsOfServicePage';
@@ -11,9 +12,9 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { INITIAL_TESTS } from './services/testData';
 import { evaluateVoiceSubmission } from './services/speechAnalyzer';
-import { fetchSubmissionsFromCloud, saveSubmissionToCloud, retryPendingSubmissions, readLocalCache, loadAllCachedSubmissionsAsync, getCacheSyncMeta, retryPendingAudioUploads } from './services/cloudDatabase';
+import { fetchSubmissionsFromCloud, saveSubmissionToCloud, retryPendingSubmissions, readLocalCache, loadAllCachedSubmissionsAsync, getCacheSyncMeta, retryPendingAudioUploads, updateSubmissionInCloud } from './services/cloudDatabase';
 import { notificationService } from './services/notificationService';
-import { Shield, ArrowRight, Unplug } from 'lucide-react';
+import { Shield, ArrowRight, Unplug, Headphones, Key, RefreshCw } from 'lucide-react';
 
 
 const playClickSfx = () => {
@@ -40,6 +41,7 @@ export default function App() {
   };
 
   const [viewMode, setViewMode] = useState('candidate'); // 'candidate' | 'recruiter'
+  const [adminActiveTab, setAdminActiveTab] = useState('voice_studio'); // 'voice_studio' | 'key_manager'
   const [testStep, setTestStep] = useState('auth'); // 'auth' | 'system_check' | 'testing' | 'submitted'
   const [urlKey, setUrlKey] = useState('8d5ri83f9c');
 
@@ -104,8 +106,15 @@ export default function App() {
 
       const adminParam = params.get('admin');
       const dashboardParam = params.get('dashboard');
-      const isDirectAdminUrl = adminParam === 'true' || adminParam === 'dashboard' || dashboardParam === 'true' || adminParam === 'login';
+      const tabParam = params.get('tab');
+      const isDirectAdminUrl = adminParam === 'true' || adminParam === 'dashboard' || dashboardParam === 'true' || adminParam === 'login' || adminParam === 'voice' || adminParam === 'keys';
       const isSavedAdminSession = localStorage.getItem('hirewave_admin_authenticated') === 'true';
+
+      if (tabParam === 'keys' || tabParam === 'manager' || adminParam === 'keys') {
+        setAdminActiveTab('key_manager');
+      } else {
+        setAdminActiveTab('voice_studio');
+      }
 
       if (isSavedAdminSession || (isEmbed && isDirectAdminUrl)) {
         setIsAdminAuthenticated(true);
@@ -352,6 +361,28 @@ export default function App() {
     });
   };
 
+  // Update candidate feedback in local state & Cloud Database
+  const handleUpdateCandidateFeedback = async (subOrIdentifier, updatedFeedback) => {
+    const subId = subOrIdentifier.id || subOrIdentifier._dbId;
+    if (!subId) return;
+
+    setSubmissions((prev) =>
+      prev.map((item) => {
+        if ((item.id || item._dbId) === subId) {
+          return { ...item, recruiterFeedback: updatedFeedback };
+        }
+        return item;
+      })
+    );
+
+    try {
+      const targetSub = submissions.find((item) => (item.id || item._dbId) === subId) || subOrIdentifier;
+      await updateSubmissionInCloud(subId, { ...targetSub, recruiterFeedback: updatedFeedback });
+    } catch (e) {
+      console.warn("Error updating candidate feedback in cloud:", e);
+    }
+  };
+
   const handleAdminSuccess = () => {
     setIsAdminAuthenticated(true);
     try {
@@ -460,38 +491,114 @@ export default function App() {
         ) : (
           <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', color: '#0f172a' }}>
             {/* Recruiter Top Navigation Bar */}
-            <div style={{ background: '#ffffff', padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)', flexWrap: 'wrap', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #2563eb 100%)', color: '#ffffff', fontWeight: 800, fontSize: '0.85rem', padding: '4px 8px', borderRadius: '6px', letterSpacing: '0.5px' }}>
-                  NOVA
+            <div style={{ background: '#ffffff', padding: '10px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #2563eb 100%)', color: '#ffffff', fontWeight: 800, fontSize: '0.85rem', padding: '4px 8px', borderRadius: '6px', letterSpacing: '0.5px' }}>
+                    NOVA
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>Recruiter Admin</span>
+                  </div>
                 </div>
-                <div>
-                  <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>Recruiter Admin</span>
+
+                {/* Main Admin Tab Switcher */}
+                <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0', gap: '4px' }}>
+                  <button
+                    onClick={() => setAdminActiveTab('voice_studio')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '5px 12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      background: adminActiveTab === 'voice_studio' ? '#ffffff' : 'transparent',
+                      color: adminActiveTab === 'voice_studio' ? '#4f46e5' : '#64748b',
+                      boxShadow: adminActiveTab === 'voice_studio' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
+                    }}
+                  >
+                    <Headphones size={14} />
+                    <span>Voice Auditions & Evaluations</span>
+                    <span style={{ fontSize: '9px', background: adminActiveTab === 'voice_studio' ? '#ede9fe' : '#e2e8f0', color: adminActiveTab === 'voice_studio' ? '#6d28d9' : '#64748b', padding: '1px 5px', borderRadius: '8px', fontWeight: 800 }}>
+                      MAIN
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => setAdminActiveTab('key_manager')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '5px 12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      background: adminActiveTab === 'key_manager' ? '#ffffff' : 'transparent',
+                      color: adminActiveTab === 'key_manager' ? '#0f172a' : '#64748b',
+                      boxShadow: adminActiveTab === 'key_manager' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
+                    }}
+                  >
+                    <Key size={14} />
+                    <span>Test Keys & Config</span>
+                  </button>
                 </div>
               </div>
 
-              <button
-                onClick={() => {
-                  setViewMode('candidate');
-                  setIsAdminAuthenticated(false);
-                  try {
-                    localStorage.removeItem('hirewave_admin_authenticated');
-                  } catch (e) { }
-                }}
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  color: '#475569',
-                  fontSize: '0.76rem',
-                  fontWeight: 600,
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s'
-                }}
-              >
-                ← Exit to Candidate View
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => loadSubmissions(true)}
+                  disabled={isLoadingSubmissions}
+                  title="Force refresh submissions from cloud"
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    color: '#475569',
+                    fontSize: '0.76rem',
+                    fontWeight: 600,
+                    padding: '5px 10px',
+                    borderRadius: '6px',
+                    cursor: isLoadingSubmissions ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  <RefreshCw size={13} style={{ animation: isLoadingSubmissions ? 'spin 1s linear infinite' : 'none' }} />
+                  <span>{isLoadingSubmissions ? 'Syncing...' : 'Sync Cloud'}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setViewMode('candidate');
+                    setIsAdminAuthenticated(false);
+                    try {
+                      localStorage.removeItem('hirewave_admin_authenticated');
+                    } catch (e) { }
+                  }}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    color: '#475569',
+                    fontSize: '0.76rem',
+                    fontWeight: 600,
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  ← Exit to Candidate View
+                </button>
+              </div>
             </div>
 
             {newCandidateToast && (
@@ -529,14 +636,24 @@ export default function App() {
               </div>
             )}
 
-            <RecruiterDashboard
-              submissions={submissions}
-              activeKeys={activeKeys}
-              onAddKey={handleAddNewKey}
-              isLoadingSubmissions={isLoadingSubmissions}
-              lastSyncTime={lastSyncTime}
-              onRefresh={(force, deltaOnly) => loadSubmissions(force, deltaOnly)}
-            />
+            {/* Render Voice Auditions Studio as Primary Panel, or Key Manager */}
+            {adminActiveTab === 'voice_studio' ? (
+              <VoiceAuditionsStudio
+                submissions={submissions}
+                onRefresh={() => loadSubmissions(true)}
+                isLoading={isLoadingSubmissions}
+                onUpdateFeedback={handleUpdateCandidateFeedback}
+              />
+            ) : (
+              <RecruiterDashboard
+                submissions={submissions}
+                activeKeys={activeKeys}
+                onAddKey={handleAddNewKey}
+                isLoadingSubmissions={isLoadingSubmissions}
+                lastSyncTime={lastSyncTime}
+                onRefresh={(force, deltaOnly) => loadSubmissions(force, deltaOnly)}
+              />
+            )}
           </div>
         )}
       </main>
