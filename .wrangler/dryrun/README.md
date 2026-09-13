@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "nova-v2" generated at 2026-09-13T18:39:33.831Z.

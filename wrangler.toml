@@ -5,6 +5,7 @@ main = "public/_worker.js"
 
 [assets]
 directory = "./dist"
+not_found_handling = "single-page-application"
 
 [vars]
 RESEND_FROM_EMAIL = "Nova Assessments <evaluations@openhire.in>"
