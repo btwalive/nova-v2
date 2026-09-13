@@ -1,0 +1,8 @@
+name = "nova-v2"
+compatibility_date = "2024-09-01"
+pages_build_output_dir = "dist"
+
+[vars]
+RESEND_FROM_EMAIL = "Nova Assessments <evaluations@openhire.in>"
+RESEND_REPLY_TO_EMAIL = "support@openhire.in"
+VITE_GOOGLE_DRIVE_FOLDER_ID = "1WkOdrNQYq8IrxAxMykjyHGmsko9T81q3"
