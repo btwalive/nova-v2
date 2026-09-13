@@ -274,7 +274,7 @@ async function handleSendAssessmentFeedback(request, env) {
 /**
  * Handles audio playback streaming with HTTP 206 byte-range seeking
  */
-async function handleDriveStream(request) {
+async function handleDriveStream(request, env) {
   const url = new URL(request.url);
   const fileId = url.searchParams.get('id');
 
@@ -293,12 +293,69 @@ async function handleDriveStream(request) {
   if (range) headers.set('range', range);
 
   try {
-    const res = await fetch(driveUrl, { headers });
+    let res = await fetch(driveUrl, { headers });
+
+    // Fallback 1: docs.google.com/uc if drive.usercontent fails or redirects
+    if (!res.ok && res.status !== 206) {
+      const altUrl = `https://docs.google.com/uc?export=download&id=${encodeURIComponent(safeFileId)}`;
+      const altRes = await fetch(altUrl, { headers });
+      if (altRes.ok || altRes.status === 206) {
+        res = altRes;
+      }
+    }
+
+    // Fallback 2: Authenticated Google Drive API via OAuth
+    if (!res.ok && res.status !== 206) {
+      const clientId = env?.GOOGLE_OAUTH_CLIENT_ID || (typeof process !== 'undefined' ? process.env?.GOOGLE_OAUTH_CLIENT_ID : '');
+      const clientSecret = env?.GOOGLE_OAUTH_CLIENT_SECRET || (typeof process !== 'undefined' ? process.env?.GOOGLE_OAUTH_CLIENT_SECRET : '');
+      const refreshToken = env?.GOOGLE_OAUTH_REFRESH_TOKEN || (typeof process !== 'undefined' ? process.env?.GOOGLE_OAUTH_REFRESH_TOKEN : '');
+
+      if (clientId && clientSecret && refreshToken) {
+        try {
+          const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              client_id: clientId,
+              client_secret: clientSecret,
+              refresh_token: refreshToken,
+              grant_type: 'refresh_token',
+            }).toString(),
+          });
+          if (tokenRes.ok) {
+            const tokenData = await tokenRes.json();
+            const token = tokenData.access_token;
+            const apiHeaders = new Headers();
+            apiHeaders.set('Authorization', `Bearer ${token}`);
+            if (range) apiHeaders.set('Range', range);
+            const apiRes = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(safeFileId)}?alt=media`, {
+              headers: apiHeaders
+            });
+            if (apiRes.ok || apiRes.status === 206) {
+              res = apiRes;
+            }
+          }
+        } catch (authErr) {
+          console.warn('OAuth stream fallback error:', authErr);
+        }
+      }
+    }
+
     const responseHeaders = new Headers(res.headers);
+    // Sanitize restricting upstream headers to permit smooth browser audio streaming
+    responseHeaders.delete('content-security-policy');
+    responseHeaders.delete('x-content-security-policy');
+    responseHeaders.delete('cross-origin-opener-policy');
+    responseHeaders.delete('cross-origin-embedder-policy');
+    responseHeaders.delete('cross-origin-resource-policy');
+
+    responseHeaders.set('Content-Disposition', 'inline');
     responseHeaders.set('Access-Control-Allow-Origin', '*');
     responseHeaders.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
     responseHeaders.set('Access-Control-Allow-Headers', 'Range, Content-Type');
     responseHeaders.set('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
+    responseHeaders.set('Accept-Ranges', 'bytes');
+    responseHeaders.set('Cache-Control', 'public, max-age=86400, s-maxage=86400');
 
     return new Response(res.body, {
       status: res.status,
@@ -600,7 +657,7 @@ export default {
 
     // 2. Google Drive Audio Streaming API (HTTP 206 Seeking)
     if (path === '/api/drive-stream') {
-      return handleDriveStream(request);
+      return handleDriveStream(request, env);
     }
 
     // 3. Google Drive Audio Upload API

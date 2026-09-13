@@ -86,55 +86,84 @@ function HorizontalAudioStudio({ clips = [], speed = 1.0 }) {
   const activeClip = clips[activeIdx] || null;
   const activeSrc = formatSource(activeClip, activeIdx);
 
+  // Keep audioRef src in sync with activeSrc without re-render collisions
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!audio.src || (!audio.src.endsWith(activeSrc) && audio.src !== activeSrc)) {
+      audio.src = activeSrc;
+      audio.load();
+      if (isPlaying) {
+        audio.play().catch(err => {
+          if (err.name !== 'AbortError') console.warn('Audio play error:', err);
+        });
+      }
+    }
+  }, [activeSrc]);
+
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.playbackRate = speed || 1.0;
     }
   }, [speed]);
 
-  const handleTogglePlay = (idx) => {
+  const handleTogglePlay = async (idx) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
     setVisitedIndices(prev => new Set(prev).add(idx));
 
     if (activeIdx === idx) {
-      if (audioRef.current) {
-        if (isPlaying) {
-          audioRef.current.pause();
-          setIsPlaying(false);
-        } else {
-          audioRef.current.play()
-            .then(() => setIsPlaying(true))
-            .catch(e => console.warn('Audio play error:', e));
+      if (!audio.paused && isPlaying) {
+        audio.pause();
+        setIsPlaying(false);
+      } else {
+        try {
+          setIsPlaying(true);
+          await audio.play();
+        } catch (e) {
+          if (e.name !== 'AbortError') console.warn('Audio play error:', e);
+          setIsPlaying(!audio.paused);
         }
       }
     } else {
       setActiveIdx(idx);
-      setIsPlaying(true);
-      if (audioRef.current) {
-        audioRef.current.src = formatSource(clips[idx], idx);
-        audioRef.current.load();
-        audioRef.current.play()
-          .then(() => setIsPlaying(true))
-          .catch(e => console.warn('Audio play error:', e));
+      const targetSrc = formatSource(clips[idx], idx);
+      audio.src = targetSrc;
+      audio.load();
+      try {
+        setIsPlaying(true);
+        await audio.play();
+      } catch (e) {
+        if (e.name !== 'AbortError') console.warn('Audio play error:', e);
+        setIsPlaying(!audio.paused);
       }
     }
   };
 
   const handleError = () => {
-    if (activeSrc && activeSrc.includes('/api/drive-stream?id=')) {
-      const fId = activeSrc.split('id=')[1];
-      if (fId && audioRef.current) {
-        audioRef.current.src = `https://drive.usercontent.google.com/download?id=${fId}&export=download`;
-        audioRef.current.load();
-        if (isPlaying) audioRef.current.play().catch(() => {});
-        return;
+    const audio = audioRef.current;
+    if (!audio || !audio.error) return;
+
+    const currSrc = audio.src || '';
+    if (currSrc.includes('/api/drive-stream?id=')) {
+      const fId = currSrc.split('id=')[1]?.split('&')[0];
+      if (fId) {
+        const directUrl = `https://drive.usercontent.google.com/download?id=${fId}&export=download`;
+        if (audio.src !== directUrl) {
+          audio.src = directUrl;
+          audio.load();
+          if (isPlaying) audio.play().catch(() => {});
+          return;
+        }
       }
     }
     const fallback = fallbacks[activeIdx % fallbacks.length];
-    if (audioRef.current && audioRef.current.src !== fallback) {
+    if (audio.src !== fallback && !audio.src.endsWith(fallback)) {
       setHasError(true);
-      audioRef.current.src = fallback;
-      audioRef.current.load();
-      if (isPlaying) audioRef.current.play().catch(() => {});
+      audio.src = fallback;
+      audio.load();
+      if (isPlaying) audio.play().catch(() => {});
     }
   };
 
@@ -157,11 +186,12 @@ function HorizontalAudioStudio({ clips = [], speed = 1.0 }) {
       const nextIdx = activeIdx + 1;
       setActiveIdx(nextIdx);
       setVisitedIndices(prev => new Set(prev).add(nextIdx));
-      setIsPlaying(true);
-      if (audioRef.current) {
-        audioRef.current.src = formatSource(clips[nextIdx], nextIdx);
-        audioRef.current.load();
-        audioRef.current.play().catch(() => {});
+      const audio = audioRef.current;
+      if (audio) {
+        const nextSrc = formatSource(clips[nextIdx], nextIdx);
+        audio.src = nextSrc;
+        audio.load();
+        audio.play().then(() => setIsPlaying(true)).catch(() => {});
       }
     }
   };
@@ -196,13 +226,16 @@ function HorizontalAudioStudio({ clips = [], speed = 1.0 }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      {/* Hidden HTML5 Audio Engine */}
+      {/* Hidden HTML5 Audio Engine (decoupled src from JSX to prevent reconciliation AbortErrors) */}
       <audio
         ref={audioRef}
-        src={activeSrc}
-        preload="none"
+        preload="metadata"
         onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        onPause={() => {
+          if (audioRef.current && audioRef.current.paused) {
+            setIsPlaying(false);
+          }
+        }}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleEnded}
