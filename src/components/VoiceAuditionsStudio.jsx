@@ -625,6 +625,8 @@ export default function VoiceAuditionsStudio({
   const [sendingEmailId, setSendingEmailId] = useState(null);
   const [emailStatusMap, setEmailStatusMap] = useState({});
   const [copiedId, setCopiedId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   // Parse and normalize submissions
   const normalizedCandidates = useMemo(() => {
@@ -700,6 +702,17 @@ export default function VoiceAuditionsStudio({
   const total = normalizedCandidates.length;
   const pending = normalizedCandidates.filter(c => !c.recruiterFeedback?.hiringDecision || c.recruiterFeedback?.hiringDecision === 'pending').length;
   const selected = normalizedCandidates.filter(c => ['selected', 'shortlisted'].includes(c.recruiterFeedback?.hiringDecision)).length;
+
+  // Reset page to 1 when filters or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterDecision, filterProcess]);
+
+  const totalPages = Math.ceil(filteredCandidates.length / pageSize) || 1;
+  const paginatedCandidates = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredCandidates.slice(start, start + pageSize);
+  }, [filteredCandidates, currentPage, pageSize]);
 
   // Handle saving feedback
   const handleSaveFeedback = (cand, partial) => {
@@ -938,7 +951,7 @@ Evaluation: https://evaluation.openhire.in/?admin=true`;
               <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Try clearing filters or search terms</p>
             </div>
           ) : (
-            filteredCandidates.map((cand, idx) => {
+            paginatedCandidates.map((cand, idx) => {
               const fb = cand.recruiterFeedback || {};
               const decision = fb.hiringDecision || 'pending';
               const badge = getStatusBadge(decision);
@@ -1183,6 +1196,65 @@ Evaluation: https://evaluation.openhire.in/?admin=true`;
                 </div>
               );
             })
+          )}
+
+          {/* Pagination Controls */}
+          {filteredCandidates.length > pageSize && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 18px',
+              background: '#ffffff',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              marginTop: '8px',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>
+                Showing <strong style={{ color: '#0f172a' }}>{(currentPage - 1) * pageSize + 1}</strong> to <strong style={{ color: '#0f172a' }}>{Math.min(currentPage * pageSize, filteredCandidates.length)}</strong> of <strong style={{ color: '#0f172a' }}>{filteredCandidates.length}</strong> candidates
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: currentPage === 1 ? '#f8fafc' : '#ffffff',
+                    color: currentPage === 1 ? '#94a3b8' : '#334155',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  ← Previous
+                </button>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: currentPage === totalPages ? '#f8fafc' : '#ffffff',
+                    color: currentPage === totalPages ? '#94a3b8' : '#334155',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>
