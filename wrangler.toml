@@ -1,6 +1,10 @@
 name = "nova-v2"
 compatibility_date = "2024-09-01"
-pages_build_output_dir = "dist"
+compatibility_flags = [ "nodejs_compat" ]
+main = "public/_worker.js"
+
+[assets]
+directory = "./dist"
 
 [vars]
 RESEND_FROM_EMAIL = "Nova Assessments <evaluations@openhire.in>"
