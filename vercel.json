@@ -1,0 +1,19 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/nova", "destination": "/" },
+    { "source": "/nova/(.*)", "destination": "/$1" },
+    { "source": "/((?!api/|assets/|audio/|src/|node_modules/|@|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
+  ]
+}
+

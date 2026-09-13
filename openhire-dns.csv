@@ -1,0 +1,12 @@
+Type,Name,Content,TTL,Priority
+A,@,76.76.21.21,300,
+CNAME,www,cname.vercel-dns.com,300,
+CNAME,assessment,cname.vercel-dns.com,300,
+CNAME,nova,cname.vercel-dns.com,300,
+CNAME,jobs,email-job-module.pages.dev,300,
+CNAME,logos,public.r2.dev,300,
+TXT,@,"v=spf1 include:amazonses.com include:resend.com ~all",300,
+CNAME,resend._domainkey,dkim.resend.com,300,
+MX,bounces,feedback-smtp.us-east-1.amazonses.com,300,10
+TXT,bounces,"v=spf1 include:amazonses.com ~all",300,
+TXT,_dmarc,"v=DMARC1; p=none; sp=none; pct=100; rua=mailto:support@openhire.in; fo=1",300,

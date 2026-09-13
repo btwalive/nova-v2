@@ -1,0 +1,47 @@
+; ==============================================================================
+; DNS Zone File for openhire.in
+; Standard RFC 1035 BIND Zone Format
+; Compatible with: Vercel DNS, Cloudflare, AWS Route 53, Namecheap, GoDaddy
+; ==============================================================================
+
+$ORIGIN openhire.in.
+$TTL 300
+
+; ------------------------------------------------------------------------------
+; 1. VERCEL WEB HOSTING RECORDS
+; ------------------------------------------------------------------------------
+
+; Root / Apex Domain (openhire.in) -> Vercel Anycast Edge IP
+@                   IN  A       76.76.21.21
+
+; Subdomain: www.openhire.in -> Canonical Vercel DNS CNAME
+www                 IN  CNAME   cname.vercel-dns.com.
+
+; Subdomain: assessment.openhire.in (Nova Voice Assessment Portal)
+assessment          IN  CNAME   cname.vercel-dns.com.
+
+; Subdomain: nova.openhire.in (Nova Direct Assessment Interface)
+nova                IN  CNAME   cname.vercel-dns.com.
+
+; Subdomain: jobs.openhire.in (Nova Job Module & Recruiter Admin on Cloudflare Pages)
+jobs                IN  CNAME   email-job-module.pages.dev.
+
+; Subdomain: logos.openhire.in (Cloudflare R2 Company Logos & Brand CDN)
+logos               IN  CNAME   public.r2.dev.
+
+; ------------------------------------------------------------------------------
+; 2. EMAIL AUTHENTICATION & DELIVERABILITY (Resend: evaluations@openhire.in)
+; ------------------------------------------------------------------------------
+
+; SPF (Sender Policy Framework) - Authorizes Resend & Amazon SES to send emails
+@                   IN  TXT     "v=spf1 include:amazonses.com include:resend.com ~all"
+
+; Resend DKIM (DomainKeys Identified Mail)
+resend._domainkey   IN  CNAME   dkim.resend.com.
+
+; Resend Return-Path / Bounce Mail Handling
+bounces             IN  MX      10 feedback-smtp.us-east-1.amazonses.com.
+bounces             IN  TXT     "v=spf1 include:amazonses.com ~all"
+
+; DMARC Policy (Protects openhire.in reputation, prevents spoofing / spam flags)
+_dmarc              IN  TXT     "v=DMARC1; p=none; sp=none; pct=100; rua=mailto:support@openhire.in; fo=1"
