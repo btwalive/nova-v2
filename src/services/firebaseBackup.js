@@ -160,18 +160,20 @@ export async function fetchSubmissionsFromFirebase({ forceFull = false, cachedSu
             if (id) cachedMap.set(String(id), sub);
           });
 
-          const missingKeys = remoteKeys.filter((k) => !cachedMap.has(k));
+          // Check if any of the newest 25 remote keys are missing in our local cache
+          const recentRemoteKeys = remoteKeys.slice(-25);
+          const newMissingKeys = recentRemoteKeys.filter((k) => !cachedMap.has(k));
 
-          // If no new candidates arrived, return local cache immediately
-          if (missingKeys.length === 0) {
+          // If all recent candidates are already in our local cache, return cache immediately (0 ms)
+          if (newMissingKeys.length === 0) {
             return cachedSubmissions;
           }
 
-          // If a few new candidates arrived (e.g. 1-20), fetch only the new ones in parallel!
-          if (missingKeys.length <= 30) {
-            console.log(`🔥 Fetching ${missingKeys.length} new candidate submissions from Firebase...`);
+          // Fetch only the genuinely new submissions in parallel (tiny 2-5 KB each)
+          if (newMissingKeys.length <= 25) {
+            console.log(`🔥 Fetching ${newMissingKeys.length} new candidate submissions from Firebase...`);
             const results = await Promise.all(
-              missingKeys.map(async (key) => {
+              newMissingKeys.map(async (key) => {
                 try {
                   const subRes = await fetch(`${FIREBASE_DB_URL}/submissions/${key}.json`);
                   if (subRes.ok) {

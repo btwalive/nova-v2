@@ -200,7 +200,7 @@ function HorizontalAudioStudio({ clips = [], speed = 1.0 }) {
       <audio
         ref={audioRef}
         src={activeSrc}
-        preload="metadata"
+        preload="none"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onTimeUpdate={handleTimeUpdate}

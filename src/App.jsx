@@ -179,7 +179,7 @@ export default function App() {
 
   // Sync candidate submissions from Cloud Database with smart caching & delta polling
   const loadSubmissions = async (force = false, deltaOnly = false) => {
-    setIsLoadingSubmissions(true);
+    if (!deltaOnly) setIsLoadingSubmissions(true);
     // Non-blocking retry sync in background
     retryPendingSubmissions().catch(() => { });
     try {
@@ -218,7 +218,7 @@ export default function App() {
     } catch (e) {
       console.warn("Error fetching cloud submissions:", e);
     } finally {
-      setIsLoadingSubmissions(false);
+      if (!deltaOnly) setIsLoadingSubmissions(false);
     }
   };
 
@@ -226,12 +226,23 @@ export default function App() {
     // Candidates loading app do not need background polling of candidate records
     if (viewMode === 'recruiter') {
       loadSubmissions(false, false);
-      // Smart poll: Check for newly arrived candidates every 12s when tab is visible
+      // Smart poll: Check for newly arrived candidates every 45s when tab is visible
       const interval = setInterval(() => {
         if (typeof document !== 'undefined' && document.hidden) return;
-        loadSubmissions(false, true); // deltaOnly = true
-      }, 12000);
-      return () => clearInterval(interval);
+        loadSubmissions(false, true); // deltaOnly = true (SILENT)
+      }, 45000);
+
+      const onFocus = () => {
+        if (typeof document !== 'undefined' && !document.hidden) {
+          loadSubmissions(false, true);
+        }
+      };
+      window.addEventListener('focus', onFocus);
+
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('focus', onFocus);
+      };
     }
 
     // Only retry orphaned audio AFTER the candidate finishes (or before they start).
