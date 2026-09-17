@@ -388,11 +388,17 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
               {/* NOVA CHAT TURN (Left Aligned Message Bubble) */}
               <div key={`nova_reg_${regStep}`} className="chat-bubble-animated" style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
                 
-                {/* Nova Avatar */}
+                {/* Nova Avatar / Step Icon */}
                 <div style={{ flexShrink: 0, marginTop: '4px' }}>
-                  <div className="nova-avatar-alive" style={{ width: '52px', height: '52px', borderRadius: '50%', border: '2.5px solid #4f46e5', overflow: 'hidden', backgroundColor: '#ffffff', boxShadow: '0 4px 14px rgba(79, 70, 229, 0.25)' }}>
-                    <img src={novaAvatarImg} alt="Nova" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.1)' }} />
-                  </div>
+                  {regStep === 'phone' ? (
+                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#eef2ff', border: '2px solid #c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5', boxShadow: '0 4px 14px rgba(79, 70, 229, 0.15)' }}>
+                      <Phone size={22} color="#4f46e5" />
+                    </div>
+                  ) : (
+                    <div className="nova-avatar-alive" style={{ width: '52px', height: '52px', borderRadius: '50%', border: '2.5px solid #4f46e5', overflow: 'hidden', backgroundColor: '#ffffff', boxShadow: '0 4px 14px rgba(79, 70, 229, 0.25)' }}>
+                      <img src={novaAvatarImg} alt="Nova" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.1)' }} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Nova Question Bubble */}
@@ -432,11 +438,11 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
 
                     {regStep === 'phone' && (
                       <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
-                          Great! What is your contact number?
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>
+                          Mobile Number
                         </h3>
-                        <p style={{ fontSize: '0.98rem', color: '#334155', lineHeight: '1.6' }}>
-                          Please enter your <strong>10-digit mobile number</strong> so recruiters can reach you for interview calls and send WhatsApp updates.
+                        <p style={{ fontSize: '0.88rem', color: '#64748b', lineHeight: '1.4' }}>
+                          Enter your 10-digit number for interview updates.
                         </p>
                       </div>
                     )}
@@ -520,8 +526,8 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
                       {regStep === 'phone' && (
                         <div>
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
-                            {/* Country Code Selector (Defaults to India +91) */}
-                            <div style={{ minWidth: '120px' }}>
+                            {/* Country Code Selector */}
+                            <div style={{ width: '110px', flexShrink: 0 }}>
                               <select
                                 value={phoneCountryCode}
                                 onChange={(e) => {
@@ -530,26 +536,26 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
                                 }}
                                 style={{
                                   width: '100%',
-                                  height: '100%',
+                                  height: '44px',
                                   background: '#f8fafc',
                                   border: '1.5px solid #cbd5e1',
                                   borderRadius: '10px',
-                                  padding: '12px 8px',
-                                  fontSize: '0.92rem',
+                                  padding: '0 8px',
+                                  fontSize: '0.9rem',
                                   fontWeight: 600,
                                   color: '#0f172a',
                                   cursor: 'pointer',
                                   outline: 'none'
                                 }}
                               >
-                                <option value="+91">🇮🇳 +91 (IN)</option>
-                                <option value="+1">🇺🇸 +1 (US)</option>
-                                <option value="+44">🇬🇧 +44 (UK)</option>
-                                <option value="+971">🇦🇪 +971 (AE)</option>
-                                <option value="+65">🇸🇬 +65 (SG)</option>
-                                <option value="+61">🇦🇺 +61 (AU)</option>
-                                <option value="+966">🇸🇦 +966 (SA)</option>
-                                <option value="+974">🇶🇦 +974 (QA)</option>
+                                <option value="+91">🇮🇳 +91</option>
+                                <option value="+1">🇺🇸 +1</option>
+                                <option value="+44">🇬🇧 +44</option>
+                                <option value="+971">🇦🇪 +971</option>
+                                <option value="+65">🇸🇬 +65</option>
+                                <option value="+61">🇦🇺 +61</option>
+                                <option value="+966">🇸🇦 +966</option>
+                                <option value="+974">🇶🇦 +974</option>
                               </select>
                             </div>
 
@@ -559,9 +565,20 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
                                 type="tel"
                                 inputMode="numeric"
                                 className="maki-input"
-                                value={candidateInfo.phone}
+                                style={{ height: '44px' }}
+                                value={(() => {
+                                  const raw = candidateInfo.phone || '';
+                                  if (phoneCountryCode === '+91') {
+                                    let d = raw.replace(/\D/g, '');
+                                    if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
+                                    else if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+                                    d = d.slice(0, 10);
+                                    return d.length > 5 ? `${d.slice(0, 5)} ${d.slice(5)}` : d;
+                                  }
+                                  return raw;
+                                })()}
                                 onChange={handlePhoneInputChange}
-                                placeholder={phoneCountryCode === '+91' ? '98765 43210 (10 digits)' : 'Phone number'}
+                                placeholder={phoneCountryCode === '+91' ? '98765 43210' : 'Phone number'}
                                 maxLength={phoneCountryCode === '+91' ? 11 : 16}
                                 autoFocus
                                 required
@@ -569,23 +586,25 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
                             </div>
                           </div>
 
-                          {/* Real-time Indicator & WhatsApp Guidance */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', padding: '0 4px', fontSize: '0.8rem' }}>
-                            <span style={{ color: '#15803d', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 500 }}>
-                              <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#22c55e' }}></span>
-                              Active WhatsApp number recommended
-                            </span>
-                            {phoneCountryCode === '+91' && (
-                              <span style={{
-                                fontWeight: 600,
-                                color: (candidateInfo.phone || '').replace(/\D/g, '').length === 10 ? '#16a34a' : '#64748b'
-                              }}>
-                                {(candidateInfo.phone || '').replace(/\D/g, '').length === 10
-                                  ? '✓ Exactly 10 digits'
-                                  : `${(candidateInfo.phone || '').replace(/\D/g, '').length} / 10 digits`}
-                              </span>
-                            )}
-                          </div>
+                          {/* Minimal Real-time Digit Counter */}
+                          {phoneCountryCode === '+91' && (() => {
+                            const raw = candidateInfo.phone || '';
+                            let d = raw.replace(/\D/g, '');
+                            if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
+                            else if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+                            const count = Math.min(d.length, 10);
+                            return (
+                              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '5px', fontSize: '0.76rem' }}>
+                                <span style={{
+                                  fontWeight: 600,
+                                  color: count === 10 ? '#16a34a' : '#94a3b8',
+                                  transition: 'color 0.2s ease'
+                                }}>
+                                  {count === 10 ? '✓ 10 digits' : `${count} / 10 digits`}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
 
