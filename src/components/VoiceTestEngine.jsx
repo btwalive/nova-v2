@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Play, Pause, RotateCcw, CheckCircle, ArrowRight, Volume2, Clock, Sparkles, ZoomIn, ZoomOut, MessageSquare, ChevronRight, Loader2, CloudUpload, AlertCircle } from 'lucide-react';
+import { Mic, Square, Play, Pause, RotateCcw, CheckCircle, ArrowRight, Volume2, Clock, Sparkles, ZoomIn, ZoomOut, MessageSquare, ChevronRight, Loader2, CloudUpload, AlertCircle, Phone } from 'lucide-react';
 import AudioVisualizer from './AudioVisualizer';
 import { INTRO_SECTION_FRESHER, INTRO_SECTION_EXPERIENCED, CORE_SECTIONS } from '../services/testData';
 import { uploadAudioToStorage } from '../services/cloudDatabase';
@@ -193,6 +193,7 @@ export default function VoiceTestEngine({ candidate, test, mediaStream, onSubmit
 
   const [readerFontSize, setReaderFontSize] = useState(0.88); // Default to smallest 0.88rem
   const [isPlayingPrompt, setIsPlayingPrompt] = useState(false);
+  const [isPlayingCallerAudio, setIsPlayingCallerAudio] = useState(false);
   const [isSyncingAudio, setIsSyncingAudio] = useState(false);
   const [isProcessingAudio, setIsProcessingAudio] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -297,9 +298,16 @@ export default function VoiceTestEngine({ candidate, test, mediaStream, onSubmit
 
   const currentAudioRef = useRef(null);
   const preloadedHandleRef = useRef(null);
+  const callerAudioObjRef = useRef(null);
 
 
   const stopAllAudio = () => {
+    if (callerAudioObjRef.current) {
+      try {
+        callerAudioObjRef.current.pause();
+        callerAudioObjRef.current.currentTime = 0;
+      } catch (e) {}
+    }
     if (preloadedHandleRef.current) {
       try { preloadedHandleRef.current.stop(); } catch (e) {}
     }
@@ -315,6 +323,7 @@ export default function VoiceTestEngine({ candidate, test, mediaStream, onSubmit
       } catch (e) {}
     }
     setIsPlayingPrompt(false);
+    setIsPlayingCallerAudio(false);
   };
 
   useEffect(() => {
@@ -661,12 +670,79 @@ export default function VoiceTestEngine({ candidate, test, mediaStream, onSubmit
     synth.speak(utterance);
   };
 
+  const playCallerAudio = (text, audioUrl = null) => {
+    if (typeof window === 'undefined') return;
+    if (isPlayingCallerAudio) {
+      stopAllAudio();
+      return;
+    }
+    stopAllAudio();
+
+    const targetUrl = audioUrl || currentQuestion?.audioUrl || '/audio/prompts/mock_call_parcel_delay.mp3';
+
+    // 1. Play authentic hosted US neural voice MP3
+    if (targetUrl) {
+      try {
+        const audio = new Audio(targetUrl);
+        callerAudioObjRef.current = audio;
+        setIsPlayingCallerAudio(true);
+        audio.onended = () => {
+          setIsPlayingCallerAudio(false);
+        };
+        audio.onerror = () => {
+          console.warn('Audio file error, falling back to speech synth');
+          fallbackCallerSpeechSynth(text);
+        };
+        audio.play().catch((err) => {
+          console.warn('Audio play error, falling back to speech synth:', err);
+          fallbackCallerSpeechSynth(text);
+        });
+        return;
+      } catch (e) {
+        console.warn('Audio player init error:', e);
+      }
+    }
+
+    fallbackCallerSpeechSynth(text);
+  };
+
+  const fallbackCallerSpeechSynth = (text) => {
+    if (window.speechSynthesis && text) {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 0.94; // natural grounded US accent pitch
+
+        const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
+        const usVoice = voices.find(v => 
+          (v.lang === 'en-US' || v.lang === 'en_US') && 
+          (v.name.includes('Natural') || v.name.includes('Guy') || v.name.includes('David') || v.name.includes('Google') || v.name.includes('Christopher') || v.name.includes('Mark') || v.name.includes('Alex'))
+        ) || voices.find(v => v.lang === 'en-US' || v.lang === 'en_US') || voices.find(v => v.lang.startsWith('en'));
+
+        if (usVoice) utterance.voice = usVoice;
+        utterance.lang = 'en-US';
+
+        utterance.onstart = () => setIsPlayingCallerAudio(true);
+        utterance.onend = () => setIsPlayingCallerAudio(false);
+        utterance.onerror = () => setIsPlayingCallerAudio(false);
+
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.warn('Speech synthesis error:', e);
+        setIsPlayingCallerAudio(false);
+      }
+    }
+  };
+
   const saveCurrentResponse = (overrideData = {}) => {
     const questionKey = `${currentSection?.id}_${currentQuestion?.id}`;
     
     let expectedText = "";
     if (currentSection?.type === 'reading') {
       expectedText = currentQuestion?.promptText || "";
+    } else if (currentSection?.type === 'mock_call') {
+      expectedText = currentQuestion?.callerAudioText || "";
     } else if (currentSection?.type === 'listen_repeat') {
       expectedText = currentQuestion?.audioText || "";
     }
@@ -852,6 +928,8 @@ export default function VoiceTestEngine({ candidate, test, mediaStream, onSubmit
     switch (currentSection?.type) {
       case 'speaking':
         return `Please answer this question into your microphone:`;
+      case 'mock_call':
+        return `Listen to the customer's call, then record your spoken troubleshooting response:`;
       case 'reading':
         return `Read this passage out loud:`;
       case 'listen_repeat':
@@ -914,18 +992,153 @@ export default function VoiceTestEngine({ candidate, test, mediaStream, onSubmit
                   </div>
                 )}
 
-                {currentSection.type === 'reading' && (
+                {currentSection.type === 'mock_call' && (
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Reading Passage</span>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <button onClick={() => setReaderFontSize((p) => Math.max(0.9, p - 0.1))} style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer' }}><ZoomOut size={14} /></button>
-                        <button onClick={() => setReaderFontSize((p) => Math.min(1.4, p + 0.1))} style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer' }}><ZoomIn size={14} /></button>
+                    {/* Incoming Call Header Card */}
+                    <div style={{
+                      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                      borderRadius: '14px',
+                      padding: '16px 20px',
+                      border: '1px solid #334155',
+                      boxShadow: '0 8px 24px -4px rgba(15, 23, 42, 0.25)',
+                      marginBottom: '14px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{
+                            width: '10px',
+                            height: '10px',
+                            borderRadius: '50%',
+                            background: '#22c55e',
+                            boxShadow: '0 0 10px #22c55e'
+                          }} />
+                          <span style={{ fontSize: '0.76rem', fontWeight: 800, letterSpacing: '0.5px', color: '#86efac', textTransform: 'uppercase' }}>
+                            INCOMING CALL SIMULATION
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.74rem', color: '#94a3b8', background: 'rgba(255,255,255,0.1)', padding: '3px 8px', borderRadius: '6px', fontWeight: 600 }}>
+                          {currentQuestion.callerLocation || 'Austin, TX • US Client'}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
+                        <div style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: '12px',
+                          background: 'rgba(255, 255, 255, 0.12)',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#60a5fa',
+                          flexShrink: 0
+                        }}>
+                          <Phone size={22} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '1.02rem', fontWeight: 800, color: '#f8fafc' }}>
+                            {currentQuestion.callerName || 'David Miller'}
+                          </div>
+                          <div style={{ fontSize: '0.80rem', color: '#cbd5e1' }}>
+                            {currentQuestion.callerLocation || 'Austin, TX (US Client)'} • <strong style={{ color: '#f87171' }}>{currentQuestion.callerIssue || 'Guaranteed 2-Day Express Delivery Stuck in Transit'}</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Audio Player Action */}
+                      <div style={{
+                        background: 'rgba(255, 255, 255, 0.06)',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        borderRadius: '12px',
+                        padding: '12px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        flexWrap: 'wrap'
+                      }}>
+                        <button
+                          type="button"
+                          onClick={() => playCallerAudio(currentQuestion.callerAudioText, currentQuestion.audioUrl)}
+                          style={{
+                            background: isPlayingCallerAudio ? '#ef4444' : '#2563eb',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '9px 18px',
+                            fontSize: '0.86rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            boxShadow: isPlayingCallerAudio ? '0 4px 14px rgba(239, 68, 68, 0.4)' : '0 4px 14px rgba(37, 99, 235, 0.35)',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {isPlayingCallerAudio ? (
+                            <>
+                              <Volume2 size={16} /> <span>Pause Customer Call</span>
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 size={16} /> <span>▶ Play Customer Call (US Accent)</span>
+                            </>
+                          )}
+                        </button>
+
+                        {/* Equalizer animation when playing */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {[12, 22, 16, 26, 14, 20, 10].map((h, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                width: '3px',
+                                height: isPlayingCallerAudio ? `${h}px` : '4px',
+                                background: isPlayingCallerAudio ? '#60a5fa' : '#475569',
+                                borderRadius: '2px',
+                                transition: 'height 0.2s ease'
+                              }}
+                            />
+                          ))}
+                          <span style={{ fontSize: '0.74rem', color: isPlayingCallerAudio ? '#93c5fd' : '#94a3b8', marginLeft: '6px', fontWeight: 600 }}>
+                            {isPlayingCallerAudio ? 'Speaking with US Accent...' : 'US English Audio'}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <p className="maki-passage-text" style={{ fontSize: `${readerFontSize}rem`, lineHeight: '1.8', color: '#0f172a', fontWeight: 500, fontStyle: 'italic', background: '#ffffff', padding: '18px 20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                      "{currentQuestion.promptText}"
-                    </p>
+
+                    {/* Customer Audio Transcript Box */}
+                    <div style={{
+                      background: '#f8fafc',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                      marginBottom: '14px'
+                    }}>
+                      <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <MessageSquare size={14} color="#2563eb" /> Customer Audio Transcript:
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.94rem', color: '#0f172a', lineHeight: '1.6', fontStyle: 'italic' }}>
+                        "{currentQuestion.callerAudioText}"
+                      </p>
+                    </div>
+
+                    {/* Candidate Response Task */}
+                    <div style={{
+                      background: '#eff6ff',
+                      border: '1.5px solid #bfdbfe',
+                      borderRadius: '12px',
+                      padding: '14px 16px'
+                    }}>
+                      <div style={{ fontSize: '0.80rem', fontWeight: 800, color: '#1d4ed8', marginBottom: '4px' }}>
+                        🎯 Your Response Task (De-escalation & Spoken Resolution):
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.88rem', color: '#1e3a8a', lineHeight: '1.55' }}>
+                        Press <strong>Start Recording</strong> and speak into your microphone. Acknowledge David's frustration with genuine empathy, reassure him in a calm and professional tone, and provide 2–3 clear resolution steps (e.g., live courier tracing, replacement dispatch or emergency warehouse re-route, and refunding the $35 express shipping charge).
+                      </p>
+                    </div>
                   </div>
                 )}
 
