@@ -36,6 +36,7 @@ body {
   color: var(--text-primary);
   font-family: var(--font-family);
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic: shrinks when mobile keyboard opens */
   overflow-x: hidden;
   line-height: 1.6;
   background-attachment: fixed;
@@ -644,6 +645,18 @@ body {
 }
 
 @media (max-width: 640px) {
+  .maki-onboarding-shell {
+    padding: 16px 14px 24px 14px !important;
+    /* flex-start keeps form reachable when keyboard pushes viewport up */
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    min-height: auto !important;
+  }
+  .maki-input {
+    font-size: 16px !important; /* Prevents iOS Safari auto-zoom on input focus */
+    padding: 12px 14px !important;
+    scroll-margin-top: 60px !important;
+  }
   .maki-chat-turn {
     flex-direction: column !important;
     gap: 8px !important;

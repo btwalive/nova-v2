@@ -327,10 +327,10 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: 'linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)' }}>
+    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: 'linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)', overflowX: 'hidden' }}>
       
       {/* Main Container */}
-      <div className="maki-onboarding-shell" style={{ maxWidth: '960px', width: '100%', margin: '0 auto', padding: '40px 24px', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="maki-onboarding-shell" style={{ maxWidth: '960px', width: '100%', margin: '0 auto', padding: '28px 24px', flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
         <div style={{ width: '100%' }}>
           
           {alreadyCompletedMessage ? (
