@@ -90,6 +90,7 @@ export default function App() {
 
   // Check URL query parameters (e.g. ?key=8d5ri83f9c, ?admin=true, ?dashboard=true, ?admin=dashboard, ?embed=true)
   const [isEmbedMode, setIsEmbedMode] = useState(false);
+  const [candidateAuthInitialStep, setCandidateAuthInitialStep] = useState('name');
 
   useEffect(() => {
     try {
@@ -104,6 +105,13 @@ export default function App() {
         setIsEmbedMode(true);
       }
 
+      const stepParam = params.get('step') || params.get('screen');
+      const cheatParam = params.get('cheat');
+      if (stepParam === 'phone' || cheatParam === 'phone' || params.get('qa') === 'phone') {
+        setCandidateAuthInitialStep('phone');
+        setTestStep('auth');
+      }
+
       const adminParam = params.get('admin');
       const dashboardParam = params.get('dashboard');
       const tabParam = params.get('tab');
@@ -116,15 +124,13 @@ export default function App() {
         setAdminActiveTab('voice_studio');
       }
 
-      if (isDirectAdminUrl && isSavedAdminSession) {
+      if (isSavedAdminSession || (isEmbed && isDirectAdminUrl)) {
         setIsAdminAuthenticated(true);
         setViewMode('recruiter');
         loadSubmissions(false, false);
       } else if (isDirectAdminUrl) {
         setIsAdminLoginOpen(true);
         loadSubmissions(false, false);
-      } else {
-        setViewMode('candidate');
       }
     } catch (e) { }
   }, []);
@@ -132,25 +138,9 @@ export default function App() {
   // Restore active candidate test session on page reload/refresh
   useEffect(() => {
     try {
-      const params = new URLSearchParams(window.location.search);
-      const isReset = params.get('reset') === 'true' || params.get('new') === 'true' || params.get('auth') === 'true' || params.get('fresh') === 'true';
-      if (isReset) {
-        try { localStorage.removeItem('hirewave_active_candidate_session'); } catch (e) {}
-        setCandidateData(null);
-        setTestStep('auth');
-        return;
-      }
-
       const savedSession = localStorage.getItem('hirewave_active_candidate_session');
       if (savedSession) {
         const parsed = JSON.parse(savedSession);
-        if (parsed.candidateData?.isDevCheatMode || !parsed.candidateData?.fullName) {
-          try { localStorage.removeItem('hirewave_active_candidate_session'); } catch (e) {}
-          setCandidateData(null);
-          setTestStep('auth');
-          return;
-        }
-
         if (parsed.candidateData) setCandidateData(parsed.candidateData);
         if (parsed.activeTest) setActiveTest(parsed.activeTest);
         if (parsed.urlKey) setUrlKey(parsed.urlKey);
@@ -479,6 +469,7 @@ export default function App() {
                 initialKey={urlKey}
                 activeKeys={activeKeys}
                 onAuthenticate={handleAuthenticate}
+                initialStep={candidateAuthInitialStep}
               />
             )}
 

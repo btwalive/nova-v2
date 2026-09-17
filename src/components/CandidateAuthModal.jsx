@@ -12,10 +12,35 @@ import TermsPrivacyModal from './TermsPrivacyModal';
 
 const REG_STEPS = ['name', 'email', 'phone', 'location', 'resume'];
 
-export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKeys = {}, onAuthenticate }) {
+export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKeys = {}, onAuthenticate, initialStep = 'name' }) {
   const [authKey, setAuthKey] = useState(initialKey);
   const [showRegistrationForm, setShowRegistrationForm] = useState(true);
-  const [regStep, setRegStep] = useState('name'); // 'name' | 'email' | 'phone' | 'location' | 'resume'
+  const [regStep, setRegStep] = useState(initialStep || 'name'); // 'name' | 'email' | 'phone' | 'location' | 'resume'
+
+  useEffect(() => {
+    if (initialStep) {
+      setRegStep(initialStep);
+      if (initialStep === 'phone') {
+        setCandidateInfo(prev => ({
+          ...prev,
+          fullName: prev.fullName || 'Admin QA Reviewer',
+          email: prev.email || 'admin.qa@openhire.dev'
+        }));
+      }
+    }
+  }, [initialStep]);
+
+  const jumpToPhoneStep = () => {
+    playClickSfx();
+    setCandidateInfo(prev => ({
+      ...prev,
+      fullName: prev.fullName || 'Admin QA Reviewer',
+      email: prev.email || 'admin.qa@openhire.dev'
+    }));
+    setError('');
+    setRegStep('phone');
+  };
+
   const [alreadyCompletedMessage, setAlreadyCompletedMessage] = useState(false);
 
   const [isTermsOpen, setIsTermsOpen] = useState(false);
@@ -343,20 +368,61 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
                   <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>• Step {getStepNumber()} of {REG_STEPS.length}</span>
                 </div>
                 
-                {/* Step Dots */}
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {REG_STEPS.map((s, idx) => (
-                    <div
-                      key={s}
-                      style={{
-                        width: '10px',
-                        height: '10px',
-                        borderRadius: '50%',
-                        background: (getStepNumber() - 1) >= idx ? '#4f46e5' : '#cbd5e1',
-                        transition: 'all 0.3s ease'
-                      }}
-                    />
-                  ))}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={jumpToPhoneStep}
+                    style={{
+                      background: regStep === 'phone' ? '#eff6ff' : '#f8fafc',
+                      border: '1px solid #93c5fd',
+                      color: '#2563eb',
+                      borderRadius: '6px',
+                      padding: '3px 8px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    title="Jump directly to test the Phone Number screen with +91"
+                  >
+                    📱 Phone Screen
+                  </button>
+
+                  {/* Interactive Step Dots */}
+                  <div style={{ display: 'flex', gap: '6px' }} title="Click any step dot to jump directly to that step">
+                    {REG_STEPS.map((s, idx) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => {
+                          playClickSfx();
+                          setError('');
+                          if (idx >= 2 && !candidateInfo.fullName) {
+                            setCandidateInfo(prev => ({
+                              ...prev,
+                              fullName: 'Admin QA Reviewer',
+                              email: prev.email || 'admin.qa@openhire.dev'
+                            }));
+                          }
+                          setRegStep(s);
+                        }}
+                        style={{
+                          width: '12px',
+                          height: '12px',
+                          borderRadius: '50%',
+                          border: 'none',
+                          padding: 0,
+                          cursor: 'pointer',
+                          background: regStep === s ? '#4f46e5' : (getStepNumber() - 1) >= idx ? '#818cf8' : '#cbd5e1',
+                          transform: regStep === s ? 'scale(1.2)' : 'scale(1)',
+                          transition: 'all 0.2s ease'
+                        }}
+                        title={`Jump to Step ${idx + 1}: ${s}`}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
 
