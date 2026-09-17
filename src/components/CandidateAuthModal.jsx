@@ -34,24 +34,18 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
     candidateId: 'EMP-' + Math.floor(100000 + Math.random() * 900000)
   });
 
-  const [phoneCountryCode, setPhoneCountryCode] = useState('+91');
-
   const handlePhoneInputChange = (e) => {
     const val = e.target.value;
     const digits = val.replace(/\D/g, '');
-    if (phoneCountryCode === '+91') {
-      let clean = digits;
-      if (clean.length > 10 && clean.startsWith('91')) {
-        clean = clean.slice(2);
-      } else if (clean.length > 10 && clean.startsWith('0')) {
-        clean = clean.slice(1);
-      }
-      clean = clean.slice(0, 10);
-      const formatted = clean.length > 5 ? `${clean.slice(0, 5)} ${clean.slice(5)}` : clean;
-      setCandidateInfo(prev => ({ ...prev, phone: formatted }));
-    } else {
-      setCandidateInfo(prev => ({ ...prev, phone: digits.slice(0, 15) }));
+    let clean = digits;
+    if (clean.length > 10 && clean.startsWith('91')) {
+      clean = clean.slice(2);
+    } else if (clean.length > 10 && clean.startsWith('0')) {
+      clean = clean.slice(1);
     }
+    clean = clean.slice(0, 10);
+    const formatted = clean.length > 5 ? `${clean.slice(0, 5)} ${clean.slice(5)}` : clean;
+    setCandidateInfo(prev => ({ ...prev, phone: formatted }));
     if (error) setError('');
   };
 
@@ -260,51 +254,32 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
     } else if (regStep === 'phone') {
       const rawPhone = candidateInfo.phone || '';
       const digits = rawPhone.replace(/\D/g, '');
-
-      if (phoneCountryCode === '+91') {
-        let pure10 = digits;
-        if (pure10.length === 12 && pure10.startsWith('91')) {
-          pure10 = pure10.slice(2);
-        } else if (pure10.length === 11 && pure10.startsWith('0')) {
-          pure10 = pure10.slice(1);
-        }
-
-        if (!pure10 || pure10.length === 0) {
-          setError('Please enter your 10-digit mobile number.');
-          return;
-        }
-        if (pure10.length < 10) {
-          setError(`Mobile number must be exactly 10 digits (you entered ${pure10.length} digits).`);
-          return;
-        }
-        if (pure10.length > 10) {
-          setError(`Mobile number must be exactly 10 digits without country code.`);
-          return;
-        }
-        if (!/^[6-9]/.test(pure10)) {
-          setError('Invalid Indian mobile number. Valid numbers must start with 6, 7, 8, or 9.');
-          return;
-        }
-        if (/^(\d)\1{9}$/.test(pure10)) {
-          setError('Please enter your real active mobile number (not repeated digits).');
-          return;
-        }
-        if (pure10 === '1234567890' || pure10 === '0123456789' || pure10 === '9876543210') {
-          setError('Please enter your actual personal contact number.');
-          return;
-        }
-
-        const formattedPhone = `+91 ${pure10.slice(0, 5)} ${pure10.slice(5)}`;
-        setCandidateInfo(prev => ({ ...prev, phone: formattedPhone }));
-      } else {
-        if (digits.length < 7 || digits.length > 15) {
-          setError('Please enter a valid phone number (7–15 digits).');
-          return;
-        }
-        const formattedPhone = `${phoneCountryCode} ${digits}`;
-        setCandidateInfo(prev => ({ ...prev, phone: formattedPhone }));
+      let pure10 = digits;
+      if (pure10.length === 12 && pure10.startsWith('91')) {
+        pure10 = pure10.slice(2);
+      } else if (pure10.length === 11 && pure10.startsWith('0')) {
+        pure10 = pure10.slice(1);
       }
 
+      if (!pure10 || pure10.length === 0) {
+        setError('Please enter your 10-digit mobile number.');
+        return;
+      }
+      if (pure10.length !== 10) {
+        setError('Please enter a valid 10-digit mobile number.');
+        return;
+      }
+      if (!/^[6-9]/.test(pure10)) {
+        setError('Mobile number must start with 6, 7, 8, or 9.');
+        return;
+      }
+      if (/^(\d)\1{9}$/.test(pure10) || pure10 === '1234567890') {
+        setError('Please enter a valid mobile number.');
+        return;
+      }
+
+      const formattedPhone = `+91 ${pure10.slice(0, 5)} ${pure10.slice(5)}`;
+      setCandidateInfo(prev => ({ ...prev, phone: formattedPhone }));
       playClickSfx();
       setRegStep('location');
 
@@ -388,17 +363,11 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
               {/* NOVA CHAT TURN (Left Aligned Message Bubble) */}
               <div key={`nova_reg_${regStep}`} className="chat-bubble-animated" style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
                 
-                {/* Nova Avatar / Step Icon */}
+                {/* Nova Avatar */}
                 <div style={{ flexShrink: 0, marginTop: '4px' }}>
-                  {regStep === 'phone' ? (
-                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#eef2ff', border: '2px solid #c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5', boxShadow: '0 4px 14px rgba(79, 70, 229, 0.15)' }}>
-                      <Phone size={22} color="#4f46e5" />
-                    </div>
-                  ) : (
-                    <div className="nova-avatar-alive" style={{ width: '52px', height: '52px', borderRadius: '50%', border: '2.5px solid #4f46e5', overflow: 'hidden', backgroundColor: '#ffffff', boxShadow: '0 4px 14px rgba(79, 70, 229, 0.25)' }}>
-                      <img src={novaAvatarImg} alt="Nova" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.1)' }} />
-                    </div>
-                  )}
+                  <div className="nova-avatar-alive" style={{ width: '52px', height: '52px', borderRadius: '50%', border: '2.5px solid #4f46e5', overflow: 'hidden', backgroundColor: '#ffffff', boxShadow: '0 4px 14px rgba(79, 70, 229, 0.25)' }}>
+                    <img src={novaAvatarImg} alt="Nova" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.1)' }} />
+                  </div>
                 </div>
 
                 {/* Nova Question Bubble */}
@@ -438,11 +407,11 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
 
                     {regStep === 'phone' && (
                       <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>
-                          Mobile Number
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
+                          What is your phone number?
                         </h3>
-                        <p style={{ fontSize: '0.88rem', color: '#64748b', lineHeight: '1.4' }}>
-                          Enter your 10-digit number for interview updates.
+                        <p style={{ fontSize: '0.98rem', color: '#334155', lineHeight: '1.6' }}>
+                          Please enter your <strong>10-digit mobile number</strong>:
                         </p>
                       </div>
                     )}
@@ -525,86 +494,31 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
 
                       {regStep === 'phone' && (
                         <div>
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
-                            {/* Country Code Selector */}
-                            <div style={{ width: '110px', flexShrink: 0 }}>
-                              <select
-                                value={phoneCountryCode}
-                                onChange={(e) => {
-                                  setPhoneCountryCode(e.target.value);
-                                  setError('');
-                                }}
-                                style={{
-                                  width: '100%',
-                                  height: '44px',
-                                  background: '#f8fafc',
-                                  border: '1.5px solid #cbd5e1',
-                                  borderRadius: '10px',
-                                  padding: '0 8px',
-                                  fontSize: '0.9rem',
-                                  fontWeight: 600,
-                                  color: '#0f172a',
-                                  cursor: 'pointer',
-                                  outline: 'none'
-                                }}
-                              >
-                                <option value="+91">🇮🇳 +91</option>
-                                <option value="+1">🇺🇸 +1</option>
-                                <option value="+44">🇬🇧 +44</option>
-                                <option value="+971">🇦🇪 +971</option>
-                                <option value="+65">🇸🇬 +65</option>
-                                <option value="+61">🇦🇺 +61</option>
-                                <option value="+966">🇸🇦 +966</option>
-                                <option value="+974">🇶🇦 +974</option>
-                              </select>
-                            </div>
-
-                            {/* Digits Input */}
-                            <div style={{ flex: 1 }}>
-                              <input
-                                type="tel"
-                                inputMode="numeric"
-                                className="maki-input"
-                                style={{ height: '44px' }}
-                                value={(() => {
-                                  const raw = candidateInfo.phone || '';
-                                  if (phoneCountryCode === '+91') {
-                                    let d = raw.replace(/\D/g, '');
-                                    if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
-                                    else if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
-                                    d = d.slice(0, 10);
-                                    return d.length > 5 ? `${d.slice(0, 5)} ${d.slice(5)}` : d;
-                                  }
-                                  return raw;
-                                })()}
-                                onChange={handlePhoneInputChange}
-                                placeholder={phoneCountryCode === '+91' ? '98765 43210' : 'Phone number'}
-                                maxLength={phoneCountryCode === '+91' ? 11 : 16}
-                                autoFocus
-                                required
-                              />
-                            </div>
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <span style={{
+                              position: 'absolute',
+                              left: '16px',
+                              fontSize: '0.95rem',
+                              fontWeight: 700,
+                              color: '#64748b',
+                              pointerEvents: 'none',
+                              userSelect: 'none'
+                            }}>
+                              +91
+                            </span>
+                            <input
+                              type="tel"
+                              inputMode="numeric"
+                              className="maki-input"
+                              style={{ paddingLeft: '52px' }}
+                              value={candidateInfo.phone}
+                              onChange={handlePhoneInputChange}
+                              placeholder="98765 43210"
+                              maxLength={11}
+                              autoFocus
+                              required
+                            />
                           </div>
-
-                          {/* Minimal Real-time Digit Counter */}
-                          {phoneCountryCode === '+91' && (() => {
-                            const raw = candidateInfo.phone || '';
-                            let d = raw.replace(/\D/g, '');
-                            if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
-                            else if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
-                            const count = Math.min(d.length, 10);
-                            return (
-                              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '5px', fontSize: '0.76rem' }}>
-                                <span style={{
-                                  fontWeight: 600,
-                                  color: count === 10 ? '#16a34a' : '#94a3b8',
-                                  transition: 'color 0.2s ease'
-                                }}>
-                                  {count === 10 ? '✓ 10 digits' : `${count} / 10 digits`}
-                                </span>
-                              </div>
-                            );
-                          })()}
                         </div>
                       )}
 
