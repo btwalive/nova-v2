@@ -678,7 +678,7 @@ export default function VoiceTestEngine({ candidate, test, mediaStream, onSubmit
     }
     stopAllAudio();
 
-    const targetUrl = audioUrl || currentQuestion?.audioUrl || '/audio/prompts/mock_call_parcel_delay.mp3';
+    const targetUrl = audioUrl || currentQuestion?.audioUrl || '/audio/prompts/mock_call_customer.mp3';
 
     // 1. Play authentic hosted US neural voice MP3
     if (targetUrl) {
@@ -1136,7 +1136,7 @@ export default function VoiceTestEngine({ candidate, test, mediaStream, onSubmit
                         🎯 Your Response Task (De-escalation & Spoken Resolution):
                       </div>
                       <p style={{ margin: 0, fontSize: '0.88rem', color: '#1e3a8a', lineHeight: '1.55' }}>
-                        Press <strong>Start Recording</strong> and speak into your microphone. Acknowledge David's frustration with genuine empathy, reassure him in a calm and professional tone, and provide 2–3 clear resolution steps (e.g., live courier tracing, replacement dispatch or emergency warehouse re-route, and refunding the $35 express shipping charge).
+                        Press <strong>Start Recording</strong> and speak into your microphone. Acknowledge Hope's frustration with genuine empathy, reassure her in a calm and professional tone, and provide 2–3 clear resolution steps (e.g., live courier tracing, replacement dispatch or emergency warehouse re-route, and refunding the $35 express shipping charge).
                       </p>
                     </div>
                   </div>
