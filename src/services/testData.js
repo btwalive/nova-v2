@@ -47,18 +47,17 @@ export const INTRO_SECTION_EXPERIENCED = {
 export const CORE_SECTIONS = [
   {
     id: "sec_mock_call",
-    title: "Section 2: Customer Mock Call — Urgent Parcel Delivery Delay",
-    instructions: "Listen to the customer's live incoming call regarding an urgent delayed parcel delivery, then speak into your microphone to acknowledge their frustration with empathy and provide a clear resolution.",
+    title: "Section 2: Customer Mock Call",
+    instructions: "Listen to the customer's call, then record your response to resolve the issue.",
     type: "mock_call",
     questions: [
       {
         id: "q_mc_1",
         callerName: "Hope Davis",
-        callerLocation: "Austin, TX (US Client)",
-        callerIssue: "Guaranteed 2-Day Express Delivery Stuck in Transit",
+        callerIssue: "Order #84920 • Delayed Delivery",
         callerAudioText: "Hi, good morning. I'm calling about order number 84920. I paid thirty-five dollars extra for guaranteed two-day express delivery because this package is a birthday present for my daughter, and her party is tomorrow afternoon. But the tracking status hasn't updated in four days—it just says 'In Transit, Arriving Late' somewhere in Ohio! This is completely unacceptable. Can someone please tell me where my package actually is, and how you're going to get this to my doorstep before tomorrow?",
         audioUrl: "/audio/prompts/mock_call_customer.mp3",
-        promptText: "An upset US customer called regarding a delayed express parcel containing a birthday gift for her daughter's party tomorrow. Listen to Hope's call, then record your response: acknowledge her frustration with genuine empathy, reassure her, explain the immediate tracking investigation steps, and outline solutions such as expedited courier re-routing or issuing a refund for the express fee.",
+        promptText: "Listen to the customer's call, then record your response to resolve the issue.",
         recordingTimeLimitSeconds: 90
       }
     ]

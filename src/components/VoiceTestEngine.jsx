@@ -929,7 +929,7 @@ export default function VoiceTestEngine({ candidate, test, mediaStream, onSubmit
       case 'speaking':
         return `Please answer this question into your microphone:`;
       case 'mock_call':
-        return `Listen to the customer's call, then record your spoken troubleshooting response:`;
+        return `Listen to the customer's call, then record your response:`;
       case 'reading':
         return `Read this passage out loud:`;
       case 'listen_repeat':
@@ -994,151 +994,105 @@ export default function VoiceTestEngine({ candidate, test, mediaStream, onSubmit
 
                 {currentSection.type === 'mock_call' && (
                   <div>
-                    {/* Incoming Call Header Card */}
+                    {/* Incoming Call Card */}
                     <div style={{
-                      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                      borderRadius: '14px',
-                      padding: '16px 20px',
+                      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                      borderRadius: '16px',
+                      padding: '18px 20px',
+                      color: '#ffffff',
                       border: '1px solid #334155',
-                      boxShadow: '0 8px 24px -4px rgba(15, 23, 42, 0.25)',
-                      marginBottom: '14px'
+                      boxShadow: '0 6px 20px -4px rgba(15, 23, 42, 0.2)',
+                      marginBottom: '16px'
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{
-                            width: '10px',
-                            height: '10px',
-                            borderRadius: '50%',
-                            background: '#22c55e',
-                            boxShadow: '0 0 10px #22c55e'
-                          }} />
-                          <span style={{ fontSize: '0.76rem', fontWeight: 800, letterSpacing: '0.5px', color: '#86efac', textTransform: 'uppercase' }}>
-                            INCOMING CALL SIMULATION
-                          </span>
-                        </div>
-                        <span style={{ fontSize: '0.74rem', color: '#94a3b8', background: 'rgba(255,255,255,0.1)', padding: '3px 8px', borderRadius: '6px', fontWeight: 600 }}>
-                          {currentQuestion.callerLocation || 'Austin, TX • US Client'}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: '#22c55e',
+                          boxShadow: '0 0 8px #22c55e'
+                        }} />
+                        <span style={{ fontSize: '0.74rem', fontWeight: 700, letterSpacing: '0.6px', color: '#86efac', textTransform: 'uppercase' }}>
+                          Incoming Customer Call
                         </span>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
-                        <div style={{
-                          width: '44px',
-                          height: '44px',
-                          borderRadius: '12px',
-                          background: 'rgba(255, 255, 255, 0.12)',
-                          border: '1px solid rgba(255, 255, 255, 0.2)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#60a5fa',
-                          flexShrink: 0
-                        }}>
-                          <Phone size={22} />
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '1.02rem', fontWeight: 800, color: '#f8fafc' }}>
-                            {currentQuestion.callerName || 'David Miller'}
-                          </div>
-                          <div style={{ fontSize: '0.80rem', color: '#cbd5e1' }}>
-                            {currentQuestion.callerLocation || 'Austin, TX (US Client)'} • <strong style={{ color: '#f87171' }}>{currentQuestion.callerIssue || 'Guaranteed 2-Day Express Delivery Stuck in Transit'}</strong>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Audio Player Action */}
-                      <div style={{
-                        background: 'rgba(255, 255, 255, 0.06)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        borderRadius: '12px',
-                        padding: '12px 16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '12px',
-                        flexWrap: 'wrap'
-                      }}>
-                        <button
-                          type="button"
-                          onClick={() => playCallerAudio(currentQuestion.callerAudioText, currentQuestion.audioUrl)}
-                          style={{
-                            background: isPlayingCallerAudio ? '#ef4444' : '#2563eb',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '8px',
-                            padding: '9px 18px',
-                            fontSize: '0.86rem',
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{
+                            width: '42px',
+                            height: '42px',
+                            borderRadius: '10px',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
+                            display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
-                            boxShadow: isPlayingCallerAudio ? '0 4px 14px rgba(239, 68, 68, 0.4)' : '0 4px 14px rgba(37, 99, 235, 0.35)',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          {isPlayingCallerAudio ? (
-                            <>
-                              <Volume2 size={16} /> <span>Pause Customer Call</span>
-                            </>
-                          ) : (
-                            <>
-                              <Volume2 size={16} /> <span>▶ Play Customer Call (US Accent)</span>
-                            </>
-                          )}
-                        </button>
+                            justifyContent: 'center',
+                            color: '#60a5fa',
+                            flexShrink: 0
+                          }}>
+                            <Phone size={20} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc' }}>
+                              {currentQuestion.callerName || 'Hope Davis'}
+                            </div>
+                            <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                              {currentQuestion.callerIssue || 'Order #84920 • Delayed Delivery'}
+                            </div>
+                          </div>
+                        </div>
 
-                        {/* Equalizer animation when playing */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          {[12, 22, 16, 26, 14, 20, 10].map((h, i) => (
-                            <div
-                              key={i}
-                              style={{
-                                width: '3px',
-                                height: isPlayingCallerAudio ? `${h}px` : '4px',
-                                background: isPlayingCallerAudio ? '#60a5fa' : '#475569',
-                                borderRadius: '2px',
-                                transition: 'height 0.2s ease'
-                              }}
-                            />
-                          ))}
-                          <span style={{ fontSize: '0.74rem', color: isPlayingCallerAudio ? '#93c5fd' : '#94a3b8', marginLeft: '6px', fontWeight: 600 }}>
-                            {isPlayingCallerAudio ? 'Speaking with US Accent...' : 'US English Audio'}
-                          </span>
+                        {/* Audio Player Action */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <button
+                            type="button"
+                            onClick={() => playCallerAudio(currentQuestion.callerAudioText, currentQuestion.audioUrl)}
+                            style={{
+                              background: isPlayingCallerAudio ? '#ef4444' : '#2563eb',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '10px 18px',
+                              fontSize: '0.88rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              boxShadow: isPlayingCallerAudio ? '0 4px 14px rgba(239, 68, 68, 0.35)' : '0 4px 14px rgba(37, 99, 235, 0.35)',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <Volume2 size={16} />
+                            <span>{isPlayingCallerAudio ? 'Pause Call' : 'Play Customer Call'}</span>
+                          </button>
+
+                          {/* Equalizer animation when playing */}
+                          {isPlayingCallerAudio && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', paddingLeft: '4px' }}>
+                              {[12, 22, 16, 26, 14, 20, 10].map((h, i) => (
+                                <div
+                                  key={i}
+                                  style={{
+                                    width: '3px',
+                                    height: `${h}px`,
+                                    background: '#60a5fa',
+                                    borderRadius: '2px',
+                                    transition: 'height 0.2s ease'
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    {/* Customer Audio Transcript Box */}
-                    <div style={{
-                      background: '#f8fafc',
-                      border: '1.5px solid #e2e8f0',
-                      borderRadius: '12px',
-                      padding: '14px 16px',
-                      marginBottom: '14px'
-                    }}>
-                      <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <MessageSquare size={14} color="#2563eb" /> Customer Audio Transcript:
-                      </div>
-                      <p style={{ margin: 0, fontSize: '0.94rem', color: '#0f172a', lineHeight: '1.6', fontStyle: 'italic' }}>
-                        "{currentQuestion.callerAudioText}"
-                      </p>
-                    </div>
-
-                    {/* Candidate Response Task */}
-                    <div style={{
-                      background: '#eff6ff',
-                      border: '1.5px solid #bfdbfe',
-                      borderRadius: '12px',
-                      padding: '14px 16px'
-                    }}>
-                      <div style={{ fontSize: '0.80rem', fontWeight: 800, color: '#1d4ed8', marginBottom: '4px' }}>
-                        🎯 Your Response Task (De-escalation & Spoken Resolution):
-                      </div>
-                      <p style={{ margin: 0, fontSize: '0.88rem', color: '#1e3a8a', lineHeight: '1.55' }}>
-                        Press <strong>Start Recording</strong> and speak into your microphone. Acknowledge Hope's frustration with genuine empathy, reassure her in a calm and professional tone, and provide 2–3 clear resolution steps (e.g., live courier tracing, replacement dispatch or emergency warehouse re-route, and refunding the $35 express shipping charge).
-                      </p>
-                    </div>
+                    {/* The Ask (Minimal prompt) */}
+                    <p style={{ fontSize: '0.98rem', color: '#1e293b', lineHeight: '1.6', margin: '0 0 16px 0', fontWeight: 500 }}>
+                      {currentQuestion.promptText || "Listen to the customer's call, then record your response to resolve the issue."}
+                    </p>
                   </div>
                 )}
 
