@@ -116,13 +116,15 @@ export default function App() {
         setAdminActiveTab('voice_studio');
       }
 
-      if (isSavedAdminSession || (isEmbed && isDirectAdminUrl)) {
+      if (isDirectAdminUrl && isSavedAdminSession) {
         setIsAdminAuthenticated(true);
         setViewMode('recruiter');
         loadSubmissions(false, false);
       } else if (isDirectAdminUrl) {
         setIsAdminLoginOpen(true);
         loadSubmissions(false, false);
+      } else {
+        setViewMode('candidate');
       }
     } catch (e) { }
   }, []);
@@ -130,9 +132,25 @@ export default function App() {
   // Restore active candidate test session on page reload/refresh
   useEffect(() => {
     try {
+      const params = new URLSearchParams(window.location.search);
+      const isReset = params.get('reset') === 'true' || params.get('new') === 'true' || params.get('auth') === 'true' || params.get('fresh') === 'true';
+      if (isReset) {
+        try { localStorage.removeItem('hirewave_active_candidate_session'); } catch (e) {}
+        setCandidateData(null);
+        setTestStep('auth');
+        return;
+      }
+
       const savedSession = localStorage.getItem('hirewave_active_candidate_session');
       if (savedSession) {
         const parsed = JSON.parse(savedSession);
+        if (parsed.candidateData?.isDevCheatMode || !parsed.candidateData?.fullName) {
+          try { localStorage.removeItem('hirewave_active_candidate_session'); } catch (e) {}
+          setCandidateData(null);
+          setTestStep('auth');
+          return;
+        }
+
         if (parsed.candidateData) setCandidateData(parsed.candidateData);
         if (parsed.activeTest) setActiveTest(parsed.activeTest);
         if (parsed.urlKey) setUrlKey(parsed.urlKey);

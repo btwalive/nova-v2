@@ -14,7 +14,7 @@ const REG_STEPS = ['name', 'email', 'phone', 'location', 'resume'];
 
 export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKeys = {}, onAuthenticate }) {
   const [authKey, setAuthKey] = useState(initialKey);
-  const [showRegistrationForm, setShowRegistrationForm] = useState(false);
+  const [showRegistrationForm, setShowRegistrationForm] = useState(true);
   const [regStep, setRegStep] = useState('name'); // 'name' | 'email' | 'phone' | 'location' | 'resume'
   const [alreadyCompletedMessage, setAlreadyCompletedMessage] = useState(false);
 
