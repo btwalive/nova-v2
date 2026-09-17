@@ -34,6 +34,27 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
     candidateId: 'EMP-' + Math.floor(100000 + Math.random() * 900000)
   });
 
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+91');
+
+  const handlePhoneInputChange = (e) => {
+    const val = e.target.value;
+    const digits = val.replace(/\D/g, '');
+    if (phoneCountryCode === '+91') {
+      let clean = digits;
+      if (clean.length > 10 && clean.startsWith('91')) {
+        clean = clean.slice(2);
+      } else if (clean.length > 10 && clean.startsWith('0')) {
+        clean = clean.slice(1);
+      }
+      clean = clean.slice(0, 10);
+      const formatted = clean.length > 5 ? `${clean.slice(0, 5)} ${clean.slice(5)}` : clean;
+      setCandidateInfo(prev => ({ ...prev, phone: formatted }));
+    } else {
+      setCandidateInfo(prev => ({ ...prev, phone: digits.slice(0, 15) }));
+    }
+    if (error) setError('');
+  };
+
   const [error, setError] = useState('');
   const [introTypingDone, setIntroTypingDone] = useState(false);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
@@ -237,10 +258,53 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
       setRegStep('phone');
 
     } else if (regStep === 'phone') {
-      if (!candidateInfo.phone.trim() || candidateInfo.phone.length < 7) {
-        setError('Please enter a valid phone number.');
-        return;
+      const rawPhone = candidateInfo.phone || '';
+      const digits = rawPhone.replace(/\D/g, '');
+
+      if (phoneCountryCode === '+91') {
+        let pure10 = digits;
+        if (pure10.length === 12 && pure10.startsWith('91')) {
+          pure10 = pure10.slice(2);
+        } else if (pure10.length === 11 && pure10.startsWith('0')) {
+          pure10 = pure10.slice(1);
+        }
+
+        if (!pure10 || pure10.length === 0) {
+          setError('Please enter your 10-digit mobile number.');
+          return;
+        }
+        if (pure10.length < 10) {
+          setError(`Mobile number must be exactly 10 digits (you entered ${pure10.length} digits).`);
+          return;
+        }
+        if (pure10.length > 10) {
+          setError(`Mobile number must be exactly 10 digits without country code.`);
+          return;
+        }
+        if (!/^[6-9]/.test(pure10)) {
+          setError('Invalid Indian mobile number. Valid numbers must start with 6, 7, 8, or 9.');
+          return;
+        }
+        if (/^(\d)\1{9}$/.test(pure10)) {
+          setError('Please enter your real active mobile number (not repeated digits).');
+          return;
+        }
+        if (pure10 === '1234567890' || pure10 === '0123456789' || pure10 === '9876543210') {
+          setError('Please enter your actual personal contact number.');
+          return;
+        }
+
+        const formattedPhone = `+91 ${pure10.slice(0, 5)} ${pure10.slice(5)}`;
+        setCandidateInfo(prev => ({ ...prev, phone: formattedPhone }));
+      } else {
+        if (digits.length < 7 || digits.length > 15) {
+          setError('Please enter a valid phone number (7–15 digits).');
+          return;
+        }
+        const formattedPhone = `${phoneCountryCode} ${digits}`;
+        setCandidateInfo(prev => ({ ...prev, phone: formattedPhone }));
       }
+
       playClickSfx();
       setRegStep('location');
 
@@ -369,10 +433,10 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
                     {regStep === 'phone' && (
                       <div>
                         <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
-                          Great! What is your phone number?
+                          Great! What is your contact number?
                         </h3>
                         <p style={{ fontSize: '0.98rem', color: '#334155', lineHeight: '1.6' }}>
-                          Please enter your <strong>Phone Number</strong> so recruiters can contact you.
+                          Please enter your <strong>10-digit mobile number</strong> so recruiters can reach you for interview calls and send WhatsApp updates.
                         </p>
                       </div>
                     )}
@@ -455,15 +519,73 @@ export default function CandidateAuthModal({ initialKey = "8d5ri83f9c", activeKe
 
                       {regStep === 'phone' && (
                         <div>
-                          <input
-                            type="tel"
-                            className="maki-input"
-                            value={candidateInfo.phone}
-                            onChange={(e) => setCandidateInfo({ ...candidateInfo, phone: e.target.value })}
-                            placeholder="Type your phone number (e.g. +91 98765 43210)..."
-                            autoFocus
-                            required
-                          />
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+                            {/* Country Code Selector (Defaults to India +91) */}
+                            <div style={{ minWidth: '120px' }}>
+                              <select
+                                value={phoneCountryCode}
+                                onChange={(e) => {
+                                  setPhoneCountryCode(e.target.value);
+                                  setError('');
+                                }}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  background: '#f8fafc',
+                                  border: '1.5px solid #cbd5e1',
+                                  borderRadius: '10px',
+                                  padding: '12px 8px',
+                                  fontSize: '0.92rem',
+                                  fontWeight: 600,
+                                  color: '#0f172a',
+                                  cursor: 'pointer',
+                                  outline: 'none'
+                                }}
+                              >
+                                <option value="+91">🇮🇳 +91 (IN)</option>
+                                <option value="+1">🇺🇸 +1 (US)</option>
+                                <option value="+44">🇬🇧 +44 (UK)</option>
+                                <option value="+971">🇦🇪 +971 (AE)</option>
+                                <option value="+65">🇸🇬 +65 (SG)</option>
+                                <option value="+61">🇦🇺 +61 (AU)</option>
+                                <option value="+966">🇸🇦 +966 (SA)</option>
+                                <option value="+974">🇶🇦 +974 (QA)</option>
+                              </select>
+                            </div>
+
+                            {/* Digits Input */}
+                            <div style={{ flex: 1 }}>
+                              <input
+                                type="tel"
+                                inputMode="numeric"
+                                className="maki-input"
+                                value={candidateInfo.phone}
+                                onChange={handlePhoneInputChange}
+                                placeholder={phoneCountryCode === '+91' ? '98765 43210 (10 digits)' : 'Phone number'}
+                                maxLength={phoneCountryCode === '+91' ? 11 : 16}
+                                autoFocus
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          {/* Real-time Indicator & WhatsApp Guidance */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', padding: '0 4px', fontSize: '0.8rem' }}>
+                            <span style={{ color: '#15803d', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 500 }}>
+                              <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#22c55e' }}></span>
+                              Active WhatsApp number recommended
+                            </span>
+                            {phoneCountryCode === '+91' && (
+                              <span style={{
+                                fontWeight: 600,
+                                color: (candidateInfo.phone || '').replace(/\D/g, '').length === 10 ? '#16a34a' : '#64748b'
+                              }}>
+                                {(candidateInfo.phone || '').replace(/\D/g, '').length === 10
+                                  ? '✓ Exactly 10 digits'
+                                  : `${(candidateInfo.phone || '').replace(/\D/g, '').length} / 10 digits`}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       )}
 
