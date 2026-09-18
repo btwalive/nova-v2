@@ -1035,7 +1035,7 @@ export default function VoiceTestEngine({ candidate, test, mediaStream, onSubmit
                           </div>
                           <div>
                             <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc' }}>
-                              {currentQuestion.callerName || 'Hope Davis'}
+                              {currentQuestion.callerName || 'Sarah Mitchell'}
                             </div>
                             <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
                               {currentQuestion.callerIssue || 'Order #84920 • Delayed Delivery'}
