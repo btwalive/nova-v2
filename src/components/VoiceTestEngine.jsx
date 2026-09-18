@@ -169,6 +169,75 @@ function CandidateAudioReviewBox({ audioUrl, onReRecord }) {
   );
 }
 
+/** Collapsible fresher guidance panel for the mock call section. */
+function MockCallHintPanel() {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div style={{ marginBottom: '14px' }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '5px',
+          fontSize: '0.83rem',
+          fontWeight: 600,
+          color: '#4f46e5',
+          textDecoration: 'underline',
+          textUnderlineOffset: '2px'
+        }}
+      >
+        💡 Not sure what to say? {open ? 'Hide tips ▲' : 'See a quick guide ▼'}
+      </button>
+
+      {open && (
+        <div style={{
+          marginTop: '10px',
+          background: '#f0f4ff',
+          border: '1.5px solid #c7d2fe',
+          borderRadius: '12px',
+          padding: '14px 16px',
+          fontSize: '0.88rem',
+          color: '#1e293b',
+          lineHeight: '1.65'
+        }}>
+          <div style={{ fontWeight: 700, marginBottom: '8px', color: '#4338ca' }}>
+            📞 How to handle this call — step by step:
+          </div>
+          <ol style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <li>
+              <strong>Greet &amp; acknowledge</strong> — Start with a warm greeting and confirm you heard the issue.
+              <div style={{ color: '#475569', marginTop: '2px' }}>
+                e.g. <em>"Thank you for calling. I completely understand how frustrating this must be, Sarah."</em>
+              </div>
+            </li>
+            <li>
+              <strong>Empathise &amp; apologise</strong> — Show you care, even if it's not your fault.
+              <div style={{ color: '#475569', marginTop: '2px' }}>
+                e.g. <em>"I sincerely apologise for the delay — that's not the experience we want for you."</em>
+              </div>
+            </li>
+            <li>
+              <strong>Offer a solution</strong> — Tell them what you will do to fix it right now.
+              <div style={{ color: '#475569', marginTop: '2px' }}>
+                e.g. <em>"I'm pulling up your order right now. I'll escalate this to our logistics team and get you a delivery update within the hour."</em>
+              </div>
+            </li>
+          </ol>
+          <div style={{ marginTop: '10px', fontSize: '0.8rem', color: '#64748b', borderTop: '1px solid #c7d2fe', paddingTop: '8px' }}>
+            💬 Speak naturally — there's no single right answer. We're evaluating your communication, not a script.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function VoiceTestEngine({ candidate, test, mediaStream, onSubmitTest }) {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -1088,6 +1157,9 @@ export default function VoiceTestEngine({ candidate, test, mediaStream, onSubmit
                         </div>
                       </div>
                     </div>
+
+                    {/* Fresher Hint Panel — collapsible */}
+                    <MockCallHintPanel />
 
                     {/* The Ask (Minimal prompt) */}
                     <p style={{ fontSize: '0.98rem', color: '#1e293b', lineHeight: '1.6', margin: '0 0 16px 0', fontWeight: 500 }}>
