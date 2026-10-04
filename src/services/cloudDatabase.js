@@ -13,6 +13,7 @@ import {
   clearSubmissionsCache,
 } from './candidateCacheStore';
 import { dispatchCandidateToExternalWebhook } from './externalIntegrationService';
+import { dispatchCandidateToTelegram } from './telegramService';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRIMARY SUPABASE — Active Production Database
@@ -743,6 +744,18 @@ export async function saveSubmissionToCloud(newSubmission) {
   // Non-blocking real-time webhook dispatch to external platforms & ATS
   if (success && prepared) {
     dispatchCandidateToExternalWebhook(prepared).catch(() => {});
+  }
+
+  // Real-time Telegram Dispatch (candidate assessment card + in-bot streaming player)
+  if (success) {
+    try {
+      const payloadToSend = (prepared && prepared.rawResponses && prepared.rawResponses.some((r) => r.audioUrl))
+        ? prepared
+        : newSubmission;
+      dispatchCandidateToTelegram(payloadToSend).catch((e) => {
+        console.warn('[cloudDatabase] Telegram notification warning:', e?.message || e);
+      });
+    } catch (e) { }
   }
 
   return {
